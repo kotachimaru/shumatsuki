@@ -234,6 +234,7 @@ html, body {
 }
 
 .chapter-list { display: flex; flex-direction: column; gap: 10px; }
+.chapter-btn.demo-locked { opacity: 0.38; cursor: not-allowed; }
 .chapter-btn {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -660,7 +661,7 @@ html, body {
     <div class="section-block">
       <div class="section-title">総合的に学習</div>
       <div class="home-quiz-grid">
-        <button class="btn btn-primary" onclick="startQuiz('all', 20)">ランダム20問に挑戦</button>
+        <button class="btn btn-primary" id="home-random-btn" onclick="startQuiz('all', 20)">ランダム20問に挑戦</button>
         <button class="btn btn-outline" onclick="startQuiz('weak', 20)">弱点問題を復習</button>
       </div>
     </div>
@@ -741,7 +742,7 @@ html, body {
     <div class="weak-section" id="weak-section"></div>
 
     <div class="result-btns">
-      <button class="btn btn-primary" onclick="startQuiz('all', 20)">もう一度ランダム20問</button>
+      <button class="btn btn-primary" id="result-random-btn" onclick="startQuiz('all', 20)">もう一度ランダム20問</button>
       <button class="btn btn-outline" onclick="goHome()">ホームに戻る</button>
     </div>
   </div>
@@ -1000,7 +1001,20 @@ function renderHome() {
   const list = document.getElementById('chapter-list');
   const history = getHistory();
 
+  // デモ版は第1章の10問のみ。表記を10問に統一する
+  const randBtn = document.getElementById('home-random-btn');
+  if (randBtn) {
+    randBtn.textContent = state.isDemo ? 'ランダム10問に挑戦' : 'ランダム20問に挑戦';
+    randBtn.setAttribute('onclick', state.isDemo ? "startQuiz('all', 10)" : "startQuiz('all', 20)");
+  }
+  const resBtn = document.getElementById('result-random-btn');
+  if (resBtn) {
+    resBtn.textContent = state.isDemo ? 'もう一度ランダム10問' : 'もう一度ランダム20問';
+    resBtn.setAttribute('onclick', state.isDemo ? "startQuiz('all', 10)" : "startQuiz('all', 20)");
+  }
+
   list.innerHTML = chapters.map(ch => {
+    const isLocked = state.isDemo && ch.num !== 1;
     const qs = QUESTIONS.filter(q => q.chapter === ch.num);
     const total = qs.length;
     const done = qs.filter(q => history[q.id]).length;
@@ -1010,14 +1024,14 @@ function renderHome() {
     const accPct = answered > 0 ? Math.round(correct / answered * 100) : '-';
 
     return `
-    <button class="chapter-btn" onclick="startQuiz('chapter', 20, ${ch.num})">
-      <span class="chapter-icon">${ch.icon}</span>
+    <button class="chapter-btn${isLocked ? ' demo-locked' : ''}" onclick="${isLocked ? 'showDemoLockMsg()' : `startQuiz('chapter', 20, ${ch.num})`}">
+      <span class="chapter-icon">${isLocked ? '🔒' : ch.icon}</span>
       <div class="chapter-info">
         <div class="chapter-name">${ch.num}章 ${ch.name}</div>
-        <div class="chapter-meta">${total}問 | 正答率 ${accPct}%</div>
+        <div class="chapter-meta">${isLocked ? 'デモ版は第1章のみ' : `${total}問 | 正答率 ${accPct}%`}</div>
       </div>
-      <div class="chapter-progress" style="--pct: ${pctCh}%">
-        <span>${pctCh}%</span>
+      <div class="chapter-progress" style="--pct: ${isLocked ? 0 : pctCh}%">
+        <span>${isLocked ? '🔒' : pctCh + '%'}</span>
       </div>
     </button>`;
   }).join('');
@@ -1026,6 +1040,10 @@ function renderHome() {
 // =====================================================
 // クイズ
 // =====================================================
+function showDemoLockMsg() {
+  showToast('デモ版は第1章の10問のみご利用いただけます');
+}
+
 function startQuiz(mode, count, chapterNum) {
   let pool = [...QUESTIONS];
 
