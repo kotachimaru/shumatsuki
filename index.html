@@ -1028,7 +1028,7 @@ function renderHome() {
       <span class="chapter-icon">${isLocked ? '🔒' : ch.icon}</span>
       <div class="chapter-info">
         <div class="chapter-name">${ch.num}章 ${ch.name}</div>
-        <div class="chapter-meta">${isLocked ? 'デモ版は第1章のみ' : `${total}問 | 正答率 ${accPct}%`}</div>
+        <div class="chapter-meta">${isLocked ? 'デモ版は第1章のみ' : (state.isDemo ? 'デモ版10問 | 正答率 ' + accPct + '%' : `${total}問 | 正答率 ${accPct}%`)}</div>
       </div>
       <div class="chapter-progress" style="--pct: ${isLocked ? 0 : pctCh}%">
         <span>${isLocked ? '🔒' : pctCh + '%'}</span>
