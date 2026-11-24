@@ -587,7 +587,7 @@ html, body {
     <span class="demo-badge">◎ 登録不要</span>
     <div class="demo-lead">まずは<b>無料</b>で10問ためす</div>
     <button class="btn-demo-free" onclick="demoLogin()">無料で10問を解いてみる</button>
-    <div class="demo-note">第1章の10問をそのまま解けます。メールアドレスの登録もいりません。</div>
+    <div class="demo-note">身体症状とケア／看取り期のケアから10問。メールアドレスの登録もいりません。</div>
   </div>
 
   <div class="login-divider">すでにご購入の方</div>
@@ -1029,7 +1029,7 @@ function renderHome() {
   const list = document.getElementById('chapter-list');
   const history = getHistory();
 
-  // デモ版は第1章の10問のみ。表記を10問に統一する
+  // デモ版は第4・7章の10問のみ。表記を10問に統一する
   const randBtn = document.getElementById('home-random-btn');
   if (randBtn) {
     randBtn.textContent = state.isDemo ? 'ランダム10問に挑戦' : 'ランダム20問に挑戦';
@@ -1042,7 +1042,7 @@ function renderHome() {
   }
 
   list.innerHTML = chapters.map(ch => {
-    const isLocked = state.isDemo && ch.num !== 1;
+    const isLocked = state.isDemo && DEMO_CHAPTERS.indexOf(ch.num) < 0;
     const qs = QUESTIONS.filter(q => q.chapter === ch.num);
     const total = qs.length;
     const done = qs.filter(q => history[q.id]).length;
@@ -1050,13 +1050,14 @@ function renderHome() {
     const correct = qs.reduce((s, q) => s + ((history[q.id]||{}).correct||0), 0);
     const answered = qs.reduce((s, q) => s + ((history[q.id]||{}).correct||0) + ((history[q.id]||{}).wrong||0), 0);
     const accPct = answered > 0 ? Math.round(correct / answered * 100) : '-';
+    const demoCount = qs.filter(isDemoQuestion).length;
 
     return `
     <button class="chapter-btn${isLocked ? ' demo-locked' : ''}" onclick="${isLocked ? 'showDemoLockMsg()' : `startQuiz('chapter', 20, ${ch.num})`}">
       <span class="chapter-icon">${isLocked ? '🔒' : ch.icon}</span>
       <div class="chapter-info">
         <div class="chapter-name">${ch.num}章 ${ch.name}</div>
-        <div class="chapter-meta">${isLocked ? 'デモ版は第1章のみ' : (state.isDemo ? 'デモ版10問 | 正答率 ' + accPct + '%' : `${total}問 | 正答率 ${accPct}%`)}</div>
+        <div class="chapter-meta">${isLocked ? 'デモ版は第4・7章のみ' : (state.isDemo ? 'デモ版' + demoCount + '問 | 正答率 ' + accPct + '%' : `${total}問 | 正答率 ${accPct}%`)}</div>
       </div>
       <div class="chapter-progress" style="--pct: ${isLocked ? 0 : pctCh}%">
         <span>${isLocked ? '🔒' : pctCh + '%'}</span>
@@ -1069,13 +1070,25 @@ function renderHome() {
 // クイズ
 // =====================================================
 function showDemoLockMsg() {
-  showToast('デモ版は第1章の10問のみご利用いただけます');
+  showToast('デモ版は第4章・第7章の10問のみご利用いただけます');
+}
+
+// デモで出す10問。デモはテキストを持っていない人が購入を検討する場なので、
+// 公式テキストの図表を参照する問題（「表3において〜」など）と
+// 「テキストに挙げられていないものはどれか」形式は使わない。
+// 身体症状とケア(4章)と看取り期のケア(7章)から、単体で解ける問題だけを選んでいる。
+// （以前は配列の先頭10問＝第1章で、うち3問が表3参照＝テキストが無いと答えようがなかった）
+const DEMO_IDS = [65, 73, 74, 76, 85, 96, 131, 136, 140, 146];
+const DEMO_CHAPTERS = [4, 7];
+
+function isDemoQuestion(q) {
+  return DEMO_IDS.indexOf(q.id) >= 0;
 }
 
 function startQuiz(mode, count, chapterNum) {
   let pool = [...QUESTIONS];
 
-  if (state.isDemo) pool = pool.slice(0, 10); // デモは1章の10問のみ
+  if (state.isDemo) pool = pool.filter(isDemoQuestion); // デモは第4・7章の10問のみ
 
   if (mode === 'chapter') {
     pool = pool.filter(q => q.chapter === chapterNum);
